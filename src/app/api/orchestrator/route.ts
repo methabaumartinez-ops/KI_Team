@@ -122,9 +122,19 @@ DIRECTRICES CRÍTICAS:
                  sendEvent("status", { phase: "dispatching", message: "Consultando base de conocimiento..." });
                  const results = await searchVectorDatabase(args.query || "");
                  
-                 // Append tool call and result to history to loop again
+                 // Append tool call and result to history using strict multi-modal format for Vercel AI
                  msgHistory.push({ role: 'assistant', content: '', toolCalls: [call] });
-                 msgHistory.push({ role: 'tool', content: JSON.stringify(results), toolCallId: call.toolCallId });
+                 msgHistory.push({ 
+                   role: 'tool', 
+                   content: [
+                     {
+                       type: 'tool-result',
+                       toolCallId: call.toolCallId,
+                       toolName: call.toolName,
+                       result: results
+                     }
+                   ]
+                 });
                  continue; // Loop continues to generate the next step
              }
           } else {
