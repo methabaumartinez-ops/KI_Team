@@ -57,6 +57,7 @@ interface AgentNodeProps {
   status?: AgentNodeStatus;
   isRefinementAgent?: boolean;
   onSelect?: (agent: AgentDefinition) => void;
+  onConfigure?: () => void;
 }
 
 export function AgentNode({
@@ -66,6 +67,7 @@ export function AgentNode({
   status = "idle",
   isRefinementAgent = false,
   onSelect,
+  onConfigure,
 }: AgentNodeProps) {
   // 1. Isolate the "North Star" Prompt Engineer
   const isNorthStar = isRefinementAgent;
@@ -177,15 +179,27 @@ export function AgentNode({
 
       {/* Label */}
       <span
-        className="text-[11px] font-semibold whitespace-nowrap mt-2"
+        className="mt-4 font-mono font-bold tracking-widest uppercase transition-colors duration-500"
         style={{
-          color: "var(--color-text-primary)",
-          textShadow: "0 2px 4px rgba(0,0,0,0.9), 0 1px 2px rgba(0,0,0,1)",
-          transition: "var(--transition-fast)",
+          fontSize: isNorthStar ? "14px" : "11px",
+          color: styles.border,
+          opacity: status === "idle" ? 0.7 : 1,
+          textShadow: `0 0 10px ${styles.border}`,
         }}
       >
         {agent.name}
       </span>
+
+      {/* Custom GPT Settings Button (Hover reveal) */}
+      {onConfigure && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onConfigure(); }}
+          className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 p-2 bg-[#1a1a1a] rounded-full border border-[var(--color-gold-800)] text-[var(--color-gold-500)] opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 hover:bg-[#2a2a2a] shadow-[0_0_10px_rgba(212,160,23,0.2)]"
+          title="Personalizar instrucciones"
+        >
+          ⚙️
+        </button>
+      )}
 
       {/* Electric Neural Connection */}
       <svg

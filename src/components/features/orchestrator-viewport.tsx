@@ -17,7 +17,8 @@ import { AgentNode, type AgentNodeStatus } from "@/components/ui/agent-node";
 import { InputBar } from "@/components/ui/input-bar";
 import { RefinementBadge } from "@/components/ui/refinement-badge";
 import { Logo } from "@/components/ui/logo";
-import { AGENT_DEFINITIONS } from "@/lib/antigravity/agent-registry";
+import { AGENT_DEFINITIONS, type AgentDefinition } from "@/lib/antigravity/agent-registry";
+import { AgentConfigModal } from "./agent-config-modal";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -68,9 +69,44 @@ export function OrchestratorViewport() {
   // Track conversational session for multi-turn DB memory
   const [clientSessionId, setClientSessionId] = useState<string | null>(null);
 
+  // Custom GPT Configuration State
+  const [selectedConfigAgent, setSelectedConfigAgent] = useState<AgentDefinition | null>(null);
+  const [dbPrompts, setDbPrompts] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    // Load custom prompts from database on mount
+    fetch("/api/agents")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.data) {
+          const map: Record<string, string> = {};
+          data.data.forEach((ag: any) => { map[ag.slug] = ag.system_prompt; });
+          setDbPrompts(map);
+        }
+      })
+      .catch(console.error);
+  }, []);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [messages, phase]);
+
+  const handleSaveAgentConfig = async (slug: string, newPrompt: string) => {
+    try {
+      const res = await fetch("/api/agents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug, system_prompt: newPrompt })
+      });
+      if (res.ok) {
+        setDbPrompts((prev) => ({ ...prev, [slug]: newPrompt }));
+        addMessage({ role: "orchestrator", content: `Personalidad de [${slug}] actualizada correctamente.` });
+      }
+    } catch (e) {
+      console.error(e);
+      addMessage({ role: "orchestrator", content: `Error al guardar personalidad de [${slug}].` });
+    }
+  };
 
   const addMessage = (msg: Omit<ChatMessage, "id" | "timestamp">) => {
     setMessages((prev) => [
@@ -227,6 +263,7 @@ export function OrchestratorViewport() {
                   total={AGENT_DEFINITIONS.length}
                   status={agentStatuses[agent.slug] ?? "idle"}
                   isRefinementAgent={agent.slug === "prompt-engineer"}
+                  onConfigure={() => setSelectedConfigAgent(agent)}
                 />
               </div>
             ))}
@@ -292,6 +329,14 @@ export function OrchestratorViewport() {
       >
         <Logo size="sm" />
       </div>
+
+      <AgentConfigModal
+        isOpen={!!selectedConfigAgent}
+        agent={selectedConfigAgent}
+        currentPrompt={selectedConfigAgent ? dbPrompts[selectedConfigAgent.slug] || null : null}
+        onClose={() => setSelectedConfigAgent(null)}
+        onSave={handleSaveAgentConfig}
+      />
     </div>
   );
 }
