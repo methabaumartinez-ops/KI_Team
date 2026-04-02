@@ -7,7 +7,8 @@
 // =============================================================================
 
 import { google } from "@ai-sdk/google";
-import { embed, generateText } from "ai";
+import { embed, generateText, generateObject } from "ai";
+import { z } from "zod";
 
 // ---------------------------------------------------------------------------
 // Model Configuration
@@ -63,6 +64,43 @@ export async function generateAgentResponse(
     modelUsed: modelId,
     durationMs,
   };
+}
+
+export interface StructuredAgentResponse {
+  agent: string;
+  status: "ok" | "error" | "not_needed";
+  summary: string;
+  result: any;
+  warnings: string[];
+  assumptions: string[];
+}
+
+export const AgentResponseSchema = z.object({
+  agent: z.string(),
+  status: z.enum(["ok", "error", "not_needed"]),
+  summary: z.string(),
+  result: z.any().nullable().optional(),
+  warnings: z.array(z.string()),
+  assumptions: z.array(z.string()),
+});
+
+/**
+ * Generates strict JSON object using the configured AI provider.
+ */
+export async function generateStructuredAgentResponse(
+  options: GenerateOptions
+): Promise<StructuredAgentResponse> {
+  const modelId = options.model || DEFAULT_CHAT_MODEL;
+
+  const result = await generateObject({
+    model: getActiveModel(modelId),
+    schema: AgentResponseSchema,
+    system: options.systemPrompt,
+    prompt: options.userPrompt,
+    temperature: options.temperature ?? 0.2,
+  });
+
+  return result.object as StructuredAgentResponse;
 }
 
 // ---------------------------------------------------------------------------

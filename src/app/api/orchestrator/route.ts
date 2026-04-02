@@ -12,7 +12,7 @@ import { z } from "zod";
 import { searchVectorDatabase } from "@/lib/qdrant/search";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { AGENT_DEFINITIONS } from "@/lib/antigravity/agent-registry";
-import { generateAgentResponse, getActiveModel } from "@/lib/ai/provider";
+import { generateStructuredAgentResponse, getActiveModel } from "@/lib/ai/provider";
 
 export const runtime = "nodejs";
 
@@ -74,13 +74,13 @@ export async function POST(req: NextRequest) {
         // --- 2. ORCHESTRATOR GATHERING PHASE ---
         sendEvent("status", { phase: "dispatching" });
 
-        const orchestratorPrompt = `Eres el "Asistente de desarrollo", el director de proyecto de AgentIA. 
-Tu trabajo es recabar información técnica del usuario para poder delegar tareas complejas a un enjambre de agentes expertos (ej: Database Architect, DevOps, Prompt Engineer).
+        const orchestratorPrompt = `Eres el "Asistente Orquestador" de AgentIA. 
+Tu misión no es charlar, sino actuar como un Intake & Planning manager técnico.
 DIRECTRICES CRÍTICAS:
-1. Haz preguntas CORTAS, DIRECTAS y estrictamente necesarias. Cero comentarios banales.
-2. Si un usuario subió un documento a la base de datos de conocimiento, USA LA HERRAMIENTA 'query_database' primero para extraer información antes de preguntarle cosas obvias que ya podrían estar ahí.
-3. Puedes conversar las veces que haga falta con el usuario para afinar los detalles de la arquitectura.
-4. CUANDO consideres que YA TIENES toda la información para estructurar el desarrollo, DEBES usar OBLIGATORIAMENTE la herramienta 'delegate_to_swarm'. NO digas nada más, solo usa la herramienta y ella disparará el enjambre.`;
+1. Analiza y Normaliza la entrada del usuario. Identifica objetivos (ej: Frontend, Backend, Infraestructura).
+2. Pregunta si falta contexto (pero intenta deducir asunciones lógicas primero). Sólo bloquea el flujo si la información faltante es inasumible. Usa la herramienta 'query_database' primero si se adjuntó información.
+3. CUANDO YA TENGAS EL CONTEXTO O ASUNCIONES VÁLIDAS, usa OBLIGATORIAMENTE la herramienta 'delegate_to_swarm'.
+4. En el plan de delegación de 'delegate_to_swarm', indica EXACTAMENTE a qué agentes mandar, basándote en la complejidad de la tarea descrita.`;
 
         let shouldDelegate = false;
         let delegationPlan: any[] = [];
@@ -182,36 +182,56 @@ DIRECTRICES CRÍTICAS:
            const agentPrompt = dbAgent?.system_prompt || baseDef.defaultSystemPrompt;
 
            try {
-             const result = await generateAgentResponse({
-               systemPrompt: agentPrompt,
-               userPrompt: `The Orchestrator mapped this task for you based on the user chat: ${taskDef.taskInstructions}\nPerform your expert analysis.`,
+             // 🚀 Phase 2: JSON-Strict Enforcement
+             const result = await generateStructuredAgentResponse({
+               systemPrompt: `${agentPrompt}\n\nIMPORTANTE: Eres parte de un workflow semántico. El Orquestador te ha asignado un sub-objetivo basado en: "${prompt}".\nINSTRUCCIONES DE TAREA: ${taskDef.taskInstructions}\nAnaliza tu parcela y devuelve tu análisis en formato JSON estructurado según el esquema.`,
+               userPrompt: `Realiza tu trabajo y devuelve el JSON estructurado.`,
              });
              sendEvent("status", { agentStatuses: { [taskDef.agentSlug]: "completed" } });
-             return { slug: taskDef.agentSlug, text: result.text };
+             return result;
            } catch (error) {
              sendEvent("status", { agentStatuses: { [taskDef.agentSlug]: "failed" } });
-             return { slug: taskDef.agentSlug, error: "Execution failed" };
+             return { agent: taskDef.agentSlug, status: "error", summary: "Fallo en ejecución del agente", result: null, warnings: ["Excepción de red/modelo"], assumptions: [] };
            }
         });
 
         const agentResults = await Promise.all(agentPromises);
 
-        // --- 5. SYNTHESIS (PROMPT ENGINEER) ---
+        // --- 5. SYNTHESIS (PROMPT ENGINEER AS ARTIFACT GENERATOR) ---
         sendEvent("status", { phase: "refining", agentStatuses: { "prompt-engineer": "working" } });
 
-        let context = `Contexto Original del Usuario:\n${prompt}\n\n--- Análisis de los Agentes Especializados ---\n`;
-        agentResults.forEach(res => {
-          if (res.text) context += `[Agente: ${res.slug}]:\n${res.text}\n\n`;
-        });
+        let unificadoContext = `Contexto Original del Usuario:\n${prompt}\n\n--- Resultados JSON de la Colmena ---\n`;
+        unificadoContext += JSON.stringify({ 
+           request_id: currentSessionId || "temp_uuid",
+           agent_outputs: agentResults 
+        }, null, 2);
 
         const peAgent = dbAgents?.find(a => a.slug === "prompt-engineer");
-        const pePrompt = peAgent?.system_prompt || "Eres el Antigravity Prompt Engineer.";
-        const finalSystemPrompt = `${pePrompt}\n\nCRÍTICO: Tienes que unir y refinar todo lo que han hecho los agentes en un único 'Implementation Plan' perfecto y estructurado que será leído directamente por Antigravity (el motor IA principal del IDE). Contesta en el mismo idioma del usuario.`;
+        const basePePrompt = peAgent?.system_prompt || "Eres el Antigravity Prompt Engineer.";
+        const finalSystemPrompt = `${basePePrompt}
+CRÍTICO: No diseñas desde cero. Eres la Capa 4 de la Arquitectura (Synthesis & Artifact).
+Tu trabajo es leer los JSON outputs del enjambre, **detectar y resolver cualquier contradicción cruzada** (ej: tablas llamadas distinto en backend vs frontend), y sintetizar la única verdad.
+Salida obligatoria: UN ÚNICO archivo Markdown purificado. JAMÁS entregues conversación cruda, opiniones personales, o tu razonamiento JSON interno.
+Tu salida final DEBE ser exclusivamente la plantilla respetando esta estructura:
+
+# Contexto
+[Párrafo introductorio]
+# Objetivo
+[Meta a lograr]
+# Estado actual / Alcance funcional
+# Modelo de datos propuesto
+# Backend / API
+# Frontend / UI
+# Seguridad
+# Fases de implementación
+# Supuestos y Restricciones
+# Instrucciones para Antigravity
+# Resultado esperado`;
 
         const aiStream = await streamText({
           model: getActiveModel(),
           system: finalSystemPrompt,
-          prompt: context,
+          prompt: `Consolida y formatea este enjambre en el MD final:\n\n${unificadoContext}`,
         });
 
         let fullRefinedResponse = "";
