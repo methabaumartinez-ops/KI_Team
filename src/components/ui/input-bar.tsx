@@ -74,7 +74,7 @@ export function InputBar({
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Schreibe deine Frage oder Anfrage..."
+        placeholder="dame algo que hacer! Me aburro!"
         disabled={disabled}
         rows={2}
         className="w-full text-sm resize-none outline-none"

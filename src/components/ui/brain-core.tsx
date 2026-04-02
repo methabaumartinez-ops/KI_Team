@@ -41,37 +41,7 @@ export function BrainCore({ children, isReceiving = false }: BrainCoreProps) {
         }}
       />
 
-      {/* --- Cyber-Tribal Frame (Thorns) --- */}
-      <div className="hidden lg:block absolute inset-0 pointer-events-none z-0">
-         {/* Top Left Mandible */}
-         <svg className="absolute -left-[35px] top-[15%] w-16 h-36" style={{ transform: 'scaleX(-1) rotate(10deg)' }} viewBox="0 0 60 120" strokeLinecap="round" strokeLinejoin="round">
-            {/* Outer shadow thorn */}
-            <path d="M 60,10 C 20,30 5,80 0,120 C 15,80 30,60 60,50 Z" fill="var(--color-gold-900)" opacity="0.4" />
-            {/* Inner glowing cyber-thorn */}
-            <path d="M 60,20 C 30,35 15,75 10,105 C 20,75 35,60 60,55 Z" fill="var(--color-gold-600)" filter="drop-shadow(0 0 8px rgba(212,160,23,0.9))" />
-         </svg>
 
-         {/* Top Right Mandible */}
-         <svg className="absolute -right-[35px] top-[15%] w-16 h-36" style={{ transform: 'rotate(10deg)' }} viewBox="0 0 60 120" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M 60,10 C 20,30 5,80 0,120 C 15,80 30,60 60,50 Z" fill="var(--color-gold-900)" opacity="0.4" />
-            <path d="M 60,20 C 30,35 15,75 10,105 C 20,75 35,60 60,55 Z" fill="var(--color-gold-600)" filter="drop-shadow(0 0 8px rgba(212,160,23,0.9))" />
-         </svg>
-
-         {/* Bottom Left Mandible */}
-         <svg className="absolute -left-[45px] bottom-[20%] w-20 h-44" style={{ transform: 'scaleX(-1) rotate(-15deg)' }} viewBox="0 0 60 120" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M 60,110 C 20,90 5,40 0,0 C 15,40 30,60 60,70 Z" fill="var(--color-gold-900)" opacity="0.5" />
-            <path d="M 60,100 C 30,85 15,45 10,15 C 20,45 35,60 60,65 Z" fill="var(--color-gold-400)" filter="drop-shadow(0 0 12px rgba(212,160,23,1))" />
-            {/* Secundary smaller spike branching off */}
-            <path d="M 60,85 C 40,75 30,50 25,30 C 35,50 45,60 60,60 Z" fill="var(--color-gold-500)" />
-         </svg>
-
-         {/* Bottom Right Mandible */}
-         <svg className="absolute -right-[45px] bottom-[20%] w-20 h-44" style={{ transform: 'rotate(-15deg)' }} viewBox="0 0 60 120" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M 60,110 C 20,90 5,40 0,0 C 15,40 30,60 60,70 Z" fill="var(--color-gold-900)" opacity="0.5" />
-            <path d="M 60,100 C 30,85 15,45 10,15 C 20,45 35,60 60,65 Z" fill="var(--color-gold-400)" filter="drop-shadow(0 0 12px rgba(212,160,23,1))" />
-            <path d="M 60,85 C 40,75 30,50 25,30 C 35,50 45,60 60,60 Z" fill="var(--color-gold-500)" />
-         </svg>
-      </div>
 
       {/* --- Main brain container (Pill shaped) --- */}
       <div
@@ -122,7 +92,7 @@ export function BrainCore({ children, isReceiving = false }: BrainCoreProps) {
               className="text-xs font-semibold tracking-widest uppercase"
               style={{ color: "var(--color-text-accent)" }}
             >
-              Zentrale Orchestrierung
+              Asistente de desarrollo
             </span>
             {/* Processing badge */}
             {isReceiving && (

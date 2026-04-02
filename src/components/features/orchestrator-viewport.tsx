@@ -54,7 +54,7 @@ export function OrchestratorViewport() {
       id: "0",
       role: "orchestrator",
       content:
-        "Willkommen bei AgentIA. Schreibe deine Anfrage — ich koordiniere automatisch die richtigen Spezialisten für dich.",
+        "Hola Fran, vienes con algo nuevo? en que quieres trabajar hoy?",
       timestamp: new Date(),
     },
   ]);
@@ -317,7 +317,7 @@ const ROLE_STYLES: Record<
     bg: "var(--color-accent-subtle)",
     border: "var(--color-gold-800)",
     color: "var(--color-text-primary)",
-    label: "Zentraler Orchestrator",
+    label: "Asistente de desarrollo",
   },
   agent: {
     align: "items-start",
