@@ -15,13 +15,13 @@ import { QdrantClient } from "@qdrant/js-client-rest";
 const QDRANT_URL = process.env.QDRANT_URL || "http://localhost:6333";
 const QDRANT_API_KEY = process.env.QDRANT_API_KEY;
 const COLLECTION_NAME =
-  process.env.QDRANT_COLLECTION_NAME || "agentia_docs_v1";
+  process.env.QDRANT_COLLECTION_NAME || "agentia_docs_v2";
 
 /**
  * Embedding dimension — must match the model used for vectorization.
- * text-embedding-3-small = 1536 dimensions (OpenAI default)
+ * Google gemini text-embedding-004 = 768 dimensions
  */
-const EMBEDDING_DIMENSION = 1536;
+const EMBEDDING_DIMENSION = 768;
 
 // ---------------------------------------------------------------------------
 // Singleton instance

@@ -45,9 +45,7 @@ export function BrainCore({ children, isReceiving = false }: BrainCoreProps) {
 
       {/* --- Main brain container (Pill shaped) --- */}
       <div
-        className={`relative flex flex-col w-full lg:w-[540px] overflow-hidden ${
-          isReceiving ? "animate-center-receive" : ""
-        }`}
+        className={`relative flex flex-col w-full lg:w-[540px] overflow-hidden`}
         style={{
           height: "clamp(430px, 60vh, 540px)",
           borderRadius: "4rem", /* Deep pill/capsule shape */

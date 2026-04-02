@@ -2,19 +2,21 @@
 // AgentIA-Automate — AI Provider Wrapper
 // =============================================================================
 // Single point of dependency for the AI SDK.
-// Wraps @ai-sdk/openai so the rest of the app never imports it directly.
-// If we swap OpenAI for Anthropic/Groq/local models, only this file changes.
+// Wraps @ai-sdk/google so the rest of the app never imports it directly.
+// If we swap Google for Anthropic/Groq/local models, only this file changes.
 // =============================================================================
 
-import { openai } from "@ai-sdk/openai";
+import { google } from "@ai-sdk/google";
 import { embed, generateText } from "ai";
 
 // ---------------------------------------------------------------------------
 // Model Configuration
 // ---------------------------------------------------------------------------
 
-const DEFAULT_CHAT_MODEL = "gpt-4o-mini";
-const DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small";
+const DEFAULT_CHAT_MODEL = "gemini-2.5-flash";
+const DEFAULT_EMBEDDING_MODEL = "text-embedding-004";
+
+export const getActiveModel = (modelId?: string) => google(modelId || DEFAULT_CHAT_MODEL);
 
 // ---------------------------------------------------------------------------
 // Text Generation
@@ -46,7 +48,7 @@ export async function generateAgentResponse(
   const startTime = Date.now();
 
   const result = await generateText({
-    model: openai(modelId),
+    model: getActiveModel(modelId),
     system: options.systemPrompt,
     prompt: options.userPrompt,
     maxOutputTokens: options.maxTokens ?? 2048,
@@ -69,14 +71,14 @@ export async function generateAgentResponse(
 
 /**
  * Generates an embedding vector for the given text.
- * Uses the configured embedding model (default: text-embedding-3-small).
+ * Uses the configured embedding model (default: text-embedding-004).
  */
 export async function generateEmbedding(
   text: string,
   model?: string
 ): Promise<number[]> {
   const result = await embed({
-    model: openai.embedding(model || DEFAULT_EMBEDDING_MODEL),
+    model: google.textEmbeddingModel(model || DEFAULT_EMBEDDING_MODEL),
     value: text,
   });
 

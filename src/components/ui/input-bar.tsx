@@ -73,9 +73,12 @@ export function InputBar({
       <textarea
         value={input}
         onChange={(e) => setInput(e.target.value)}
-        onKeyDown={handleKeyDown}
+        onKeyDown={(e) => {
+           if (disabled) { e.preventDefault(); return; }
+           handleKeyDown(e);
+        }}
         placeholder="dame algo que hacer! Me aburro!"
-        disabled={disabled}
+        readOnly={disabled}
         rows={2}
         className="w-full text-sm resize-none outline-none"
         style={{

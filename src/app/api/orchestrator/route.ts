@@ -8,10 +8,9 @@
 
 import { NextRequest } from "next/server";
 import { streamText } from "ai";
-import { openai } from "@ai-sdk/openai";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { AGENT_DEFINITIONS } from "@/lib/antigravity/agent-registry";
-import { generateAgentResponse, DEFAULT_CHAT_MODEL } from "@/lib/ai/provider";
+import { generateAgentResponse, getActiveModel } from "@/lib/ai/provider";
 
 export const runtime = "edge";
 
@@ -115,15 +114,52 @@ export async function POST(req: NextRequest) {
           if (res.text) context += `[${res.slug}]: ${res.text}\n\n`;
         });
 
+        // Insert User Message to DB
+        let sessionId: string | undefined;
+        let userMessageId: string | undefined;
+        if (supabase) {
+           try {
+              const { data: sessData, error: sessErr } = await supabase.from('sessions').insert({ title: prompt.substring(0, 50) }).select('id').single();
+              if (sessData) sessionId = sessData.id;
+              
+              if (sessionId) {
+                  const { data: msgData } = await supabase.from('messages').insert({
+                     session_id: sessionId,
+                     role: 'user',
+                     content: prompt,
+                  }).select('id').single();
+                  if (msgData) userMessageId = msgData.id;
+              }
+           } catch (e) {
+              console.warn("DB Session creation failed gently.", e);
+           }
+        }
+
         // Stream the refinement response
         const aiStream = await streamText({
-          model: openai(DEFAULT_CHAT_MODEL),
+          model: getActiveModel(),
           system: finalSystemPrompt,
           prompt: context,
         });
 
+        let fullRefinedResponse = "";
         for await (const chunk of aiStream.textStream) {
+          fullRefinedResponse += chunk;
           sendEvent("text", { chunk });
+        }
+
+        // Log final AI response to DB
+        if (supabase && sessionId) {
+           try {
+              await supabase.from('messages').insert({
+                 session_id: sessionId,
+                 role: 'refined',
+                 content: fullRefinedResponse,
+                 agent_slug: 'prompt-engineer'
+              });
+           } catch (e) {
+              console.warn("Failed to log AI response to DB.", e);
+           }
         }
 
         // 5. Done
