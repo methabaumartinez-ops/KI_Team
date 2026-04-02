@@ -102,21 +102,27 @@ export function AgentNode({
 
   // --- Neural Math Geometry ---
   const isLeftAgent = targetX < 0 && !isNorthStar;
-  // Determine where on the avatar border the wire should connect
-  const svgAnchorX = isNorthStar ? (nodeSize / 2) : (isLeftAgent ? nodeSize : 0);
-  const svgAnchorY = nodeSize / 2;
   
-  // Physical absolute coordinates of the neural connection origin point
-  // We use `targetX - (nodeSize/2)` to compute the avatar graphic's true left coordinate 
-  const avatarLeftEdgeX = targetX - (nodeSize / 2);
-  const avatarTopEdgeY = targetY - (nodeSize / 2);
-  
-  const absAnchorX = avatarLeftEdgeX + svgAnchorX;
-  const absAnchorY = avatarTopEdgeY + svgAnchorY;
+  // We pin the SVG origin EXACTLY to the center of the circular avatar.
+  const originX = targetX;
+  const originY = targetY;
 
-  // The delta distance required to traverse perfectly to the Core (Chat) origin
-  const deltaX = 0 - absAnchorX;
-  const deltaY = coreTargetY - absAnchorY;
+  // Instead of calculating complex math to hit the precise curved borders of the Chat, 
+  // we route all cables directly to its physical internal spine. Because the BrainCore renders 
+  // visually on top of the Agents in the DOM, the cables will realistically vanish "behind" it
+  // yielding a flawless 3D hardware insertion effect on any screen size.
+  const destinationX = 0;
+  // Aim deep into the vertical belly of the UI (100px below the Constellation 0-anchor point)
+  const destinationY = 100;
+
+  // Calculate Relative Delta from the SVG absolute origin (avatar center) to the Destination
+  const deltaX = destinationX - originX;
+  const deltaY = destinationY - originY;
+
+  // We offset it by the avatar's radius (nodeSize/2) so it doesn't draw over the image.
+  const radius = nodeSize / 2;
+  const startX = isNorthStar ? 0 : (isLeftAgent ? radius : -radius);
+  const startY = isNorthStar ? radius : 0;
 
   return (
     <button
@@ -125,20 +131,19 @@ export function AgentNode({
         status === "working" ? "animate-node-working" : ""
       }`}
       style={{
-        // Relying on CSS `-50%` guarantees the button's exact center aligns perfectly
-        // on `targetX` / `targetY` regardless of how long the text label stretches the width.
         transform: `translate(calc(${targetX}px - 50%), calc(${targetY}px - 50%))`,
         transition: "var(--transition-normal)",
         background: "none",
         border: "none",
         padding: 0,
+        zIndex: status === "working" ? 50 : 10,
       }}
       title={agent.description}
       id={`agent-node-${agent.slug}`}
     >
         {/* --- Node Core --- */}
         <div
-          className="relative overflow-hidden z-10"
+          className="relative overflow-hidden z-10 shrink-0"
           style={{
             width: `${nodeSize}px`,
             height: `${nodeSize}px`,
@@ -189,13 +194,13 @@ export function AgentNode({
           width: "1px",
           height: "1px",
           overflow: "visible",
-          top: `${svgAnchorY}px`,
-          left: `${svgAnchorX}px`,
+          top: `${radius}px`,
+          left: `50%`,
           zIndex: -1,
         }}
       >
         <path
-          d={`M 0,0 C ${
+          d={`M ${startX},${startY} C ${
              isNorthStar ? 0 : (deltaX * 0.4) 
           },${
              isNorthStar ? (deltaY * 0.4) : 0
@@ -204,13 +209,13 @@ export function AgentNode({
           },${deltaY} ${deltaX},${deltaY}`}
           fill="none"
           stroke="var(--color-gold-600)"
-          strokeWidth={status === "idle" ? "2.5" : "4.5"}
-          strokeDasharray={status === "working" ? "8 6" : "none"}
+          strokeWidth={status === "idle" ? "1.5" : "3.5"}
+          strokeDasharray={status === "working" ? "12 8" : "none"}
           className={status === "working" ? "animate-electric-flow" : ""}
           style={{
-            opacity: status === "idle" ? 0.6 : 1,
-            transition: "var(--transition-normal)",
-            filter: status === "working" ? "drop-shadow(0 0 4px rgba(212,160,23,0.8))" : "drop-shadow(0 0 1px rgba(212,160,23,0.3))",
+            opacity: status === "idle" ? 0.25 : 1,
+            transition: "opacity 0.4s ease-in-out, filter 0.3s ease, stroke-width 0.3s ease",
+            filter: status === "working" ? "drop-shadow(0 0 8px rgba(212,160,23,1))" : "none",
           }}
         />
       </svg>

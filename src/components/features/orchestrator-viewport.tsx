@@ -64,10 +64,13 @@ export function OrchestratorViewport() {
   const [phase, setPhase] = useState<OrchestratorPhase>("idle");
   const [isRefinementVisible, setIsRefinementVisible] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Track conversational session for multi-turn DB memory
+  const [clientSessionId, setClientSessionId] = useState<string | null>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [messages, phase]);
 
   const addMessage = (msg: Omit<ChatMessage, "id" | "timestamp">) => {
     setMessages((prev) => [
@@ -87,7 +90,8 @@ export function OrchestratorViewport() {
       const response = await fetch("/api/orchestrator", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: content }),
+        // Pass the session memory token
+        body: JSON.stringify({ prompt: content, sessionId: clientSessionId }),
       });
 
       if (!response.ok) throw new Error("Orchestration failed");
@@ -114,7 +118,9 @@ export function OrchestratorViewport() {
             const dataStr = match[2];
             const data = dataStr && dataStr !== "undefined" ? JSON.parse(dataStr) : {};
 
-            if (event === "status") {
+            if (event === "sessionId" && data.sessionId) {
+               setClientSessionId(data.sessionId);
+            } else if (event === "status") {
               if (data.phase) setPhase(data.phase);
               if (data.agentStatuses) {
                 setAgentStatuses((prev) => ({ ...prev, ...data.agentStatuses }));
@@ -139,6 +145,10 @@ export function OrchestratorViewport() {
                   )
                 );
               }
+            } else if (event === "error") {
+              addMessage({ role: "orchestrator", content: "🚨 Error crítico del sistema: " + (data.message || 'Fallo desconocido') });
+              setPhase("idle");
+              setAgentStatuses({});
             } else if (event === "done") {
               await delay(1000);
               setPhase("idle");
@@ -192,18 +202,7 @@ export function OrchestratorViewport() {
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-end pb-12 overflow-hidden">
       <div className="absolute inset-0 z-0 pointer-events-none bg-[#020202]">
-        {/* Background Geometric Logo Skin */}
-        <div className="absolute inset-0 opacity-20">
-          <Image
-            src="/logotipo.webp"
-            alt="AgentIA Skeleton"
-            fill
-            className="object-cover"
-            style={{ objectPosition: "51.2% 50%" }}
-            priority
-          />
-        </div>
-        
+        {/* Removed confusing static background logo overlay */}
         {/* Subtle radial glow at center */}
         <div
           className="absolute inset-0"
