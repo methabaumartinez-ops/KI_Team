@@ -10,8 +10,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { generateEmbedding } from "@/lib/ai/provider";
 import { upsertPoints, ensureCollection } from "@/lib/qdrant/client";
-
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 interface IngestResponse {
   success: boolean;
@@ -80,9 +79,8 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error("Ingest error:", error);
-    const msg = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json<IngestResponse>(
-      { success: false, message: `Failed to ingest document: ${msg}` },
+      { success: false, message: `Failed to ingest document: ${error instanceof Error ? error.message + " (Causa: " + (error.cause || "Desconocida") + ")" : String(error)}` },
       { status: 500 }
     );
   }

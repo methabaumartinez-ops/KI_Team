@@ -9,12 +9,12 @@
 import { NextRequest } from "next/server";
 import { streamText, generateText, tool } from "ai";
 import { z } from "zod";
+import { searchVectorDatabase } from "@/lib/qdrant/search";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { AGENT_DEFINITIONS } from "@/lib/antigravity/agent-registry";
 import { generateAgentResponse, getActiveModel } from "@/lib/ai/provider";
-import { searchVectorDatabase } from "@/lib/qdrant/search";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   const { prompt, sessionId: clientSessionId } = await req.json();
